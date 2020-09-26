@@ -1,6 +1,14 @@
 package main
 
-import "fmt"
+import (
+	"bufio"
+	"errors"
+	"fmt"
+	"log"
+	"os"
+	"strconv"
+	"strings"
+)
 
 // Item ...
 type Item struct {
@@ -9,24 +17,37 @@ type Item struct {
 }
 
 func main() {
+
+	file, err := os.OpenFile("accountbook.txt", os.O_WRONLY, 0666)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// 入力するデータの件数を入れる変数
 	var n int
 	fmt.Print("何件入力しますか>")
-	fmt.Scan(&n)
+	//fmt.Scan(&n)
+	n = 1
 
-	var items = make([]Item, 0, n)
-	for i := 0; i < cap(items); i++ {
-		items = inputItem(items)
+	for i := 0; i < n; i++ {
+		if err := inputItem(file); err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	if err := file.Close(); err != nil {
+		log.Fatal(err)
 	}
 
 	// 表示
-	showItems(items)
+	if err := showItems(); err != nil {
+		log.Fatal(err)
+	}
 }
 
-// 入力を行う関数
-// 追加を行うItemのスライスを受け取る
-// 新しく入力したItemをスライスに追加して返す
-func inputItem(items []Item) []Item {
+// 入力を行いファイルに保存する関数
+// エラーが発生した場合にはそのまま返す
+func inputItem(file *os.File) error {
 	var item Item
 
 	fmt.Print("品目>")
@@ -34,19 +55,56 @@ func inputItem(items []Item) []Item {
 	fmt.Print("値段>")
 	fmt.Scan(&item.price)
 
-	// スライスに新しく入力したitemを追加する
-	items = append(items, item)
+	// ファイルに書き出す「品目 値段」のように書き出す
+	line := fmt.Sprintf("%s %d\n", item.category, item.price)
+	if _, err := file.WriteString(line); err != nil {
+		return err
+	}
 
-	return items
+	return nil
 }
 
 // 一覧の表示を行う関数
-func showItems(items []Item) {
-	fmt.Println("==========")
-
-	for i := 0; i < len(items); i++ {
-		fmt.Printf("%s:%d円\n", items[i].category, items[i].price)
+func showItems() error {
+	// "accountbook.txt"という名前のファイルを読み込み用で開く
+	file, err := os.Open("accountbook.txt")
+	if err != nil {
+		return err
 	}
 
 	fmt.Println("==========")
+
+	scanner := bufio.NewScanner(file)
+	// 1行ずつ読み込む
+	for scanner.Scan() {
+		// 1行分を取り出す
+		line := scanner.Text()
+
+		// 1行をスペースで分割する
+		splited := strings.Split(line, " ")
+
+		// 2つに分割できなかった場合はエラー
+		if len(splited) != 2 {
+			return errors.New("パースに失敗しました")
+		}
+
+		// 1つ目が品目
+		category := splited[0]
+
+		// 2つ目が値段
+		price, err := strconv.Atoi(splited[1])
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("%s:%d円\n", category, price)
+	}
+
+	if err := scanner.Err(); err != nil {
+		return err
+	}
+
+	fmt.Println("==========")
+
+	return nil
 }
