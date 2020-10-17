@@ -1,110 +1,69 @@
 package main
 
 import (
-	"bufio"
-	"errors"
 	"fmt"
-	"log"
 	"os"
-	"strconv"
-	"strings"
 )
 
-// Item ...
-type Item struct {
-	category string
-	price    int
-}
-
 func main() {
+	// AccountBookをNewAccountBookを使って作成
+	ab := NewAccountBook("accountbook.txt")
 
-	file, err := os.OpenFile("accountbook.txt", os.O_WRONLY, 0666)
-	if err != nil {
-		log.Fatal(err)
-	}
+LOOP: // 以下のループにラベル「LOOP」をつける
+	for {
+		// モードを選択して実行する
+		var mode int
+		fmt.Println("[1]入力 [2]最新10件 [3]終了")
+		fmt.Printf(">")
+		fmt.Scan(&mode)
 
-	// 入力するデータの件数を入れる変数
-	var n int
-	fmt.Print("何件入力しますか>")
-	//fmt.Scan(&n)
-	n = 1
+		// モードによって処理を変える
+		switch mode {
+		case 1:
+			var n int
+			fmt.Print("何件入力しますか>")
+			fmt.Scan(&n)
 
-	for i := 0; i < n; i++ {
-		if err := inputItem(file); err != nil {
-			log.Fatal(err)
+			for i := 0; i < n; i++ {
+				if err := ab.AddItem(inputItem()); err != nil {
+					fmt.Fprintln(os.Stderr, "エラー:", err)
+					break LOOP
+				}
+			}
+		case 2:
+			items, err := ab.GetItems(10)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "エラー:", err)
+				break LOOP
+			}
+			showItems(items)
+		case 3:
+			fmt.Println("終了します")
+			break LOOP
 		}
 	}
-
-	if err := file.Close(); err != nil {
-		log.Fatal(err)
-	}
-
-	// 表示
-	if err := showItems(); err != nil {
-		log.Fatal(err)
-	}
 }
 
-// 入力を行いファイルに保存する関数
-// エラーが発生した場合にはそのまま返す
-func inputItem(file *os.File) error {
+// Itemを入力し返す関数
+func inputItem() *Item {
 	var item Item
 
 	fmt.Print("品目>")
-	fmt.Scan(&item.category)
+	fmt.Scan(&item.Category)
 	fmt.Print("値段>")
-	fmt.Scan(&item.price)
+	fmt.Scan(&item.Price)
 
-	// ファイルに書き出す「品目 値段」のように書き出す
-	line := fmt.Sprintf("%s %d\n", item.category, item.price)
-	if _, err := file.WriteString(line); err != nil {
-		return err
-	}
-
-	return nil
+	return &item
 }
 
-// 一覧の表示を行う関数
-func showItems() error {
-	// "accountbook.txt"という名前のファイルを読み込み用で開く
-	file, err := os.Open("accountbook.txt")
-	if err != nil {
-		return err
+// Itemの一覧を出力する関数
+func showItems(items []*Item) {
+	fmt.Println("==========")
+
+	// itemsの要素を1つずつ取り出してitemに入れて繰り返す
+	for _, item := range items {
+		fmt.Printf("%s %d円\n", item.Category, item.Price)
 	}
 
 	fmt.Println("==========")
-
-	scanner := bufio.NewScanner(file)
-	// 1行ずつ読み込む
-	for scanner.Scan() {
-		// 1行分を取り出す
-		line := scanner.Text()
-
-		// 1行をスペースで分割する
-		splited := strings.Split(line, " ")
-
-		// 2つに分割できなかった場合はエラー
-		if len(splited) != 2 {
-			return errors.New("パースに失敗しました")
-		}
-
-		// 1つ目が品目
-		category := splited[0]
-
-		// 2つ目が値段
-		price, err := strconv.Atoi(splited[1])
-		if err != nil {
-			return err
-		}
-
-		fmt.Printf("%s:%d円\n", category, price)
-	}
-
-	if err := scanner.Err(); err != nil {
-		return err
-	}
-
-	fmt.Println("==========")
-
-	return nil
 }
