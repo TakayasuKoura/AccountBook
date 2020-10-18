@@ -1,13 +1,30 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"os"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func main() {
+	// データベース接続、ドライバにはSQLiteを使う、ドライバ名：sqlite.DriverName
+	// accountbook.dbというファイルでデータベース接続を行う
+	db, err := sql.Open("sqlite3", "./accountbook.db")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "エラー：", err)
+		os.Exit(1)
+	}
+
 	// AccountBookをNewAccountBookを使って作成
-	ab := NewAccountBook("accountbook.txt")
+	ab := NewAccountBook(db)
+
+	// テーブルを作成
+	if err := ab.CreateTable(); err != nil {
+		fmt.Fprintln(os.Stderr, "エラー：", err)
+		os.Exit(1)
+	}
 
 LOOP: // 以下のループにラベル「LOOP」をつける
 	for {
@@ -39,7 +56,7 @@ LOOP: // 以下のループにラベル「LOOP」をつける
 			showItems(items)
 		case 3:
 			fmt.Println("終了します")
-			break LOOP
+			return
 		}
 	}
 }
@@ -62,7 +79,7 @@ func showItems(items []*Item) {
 
 	// itemsの要素を1つずつ取り出してitemに入れて繰り返す
 	for _, item := range items {
-		fmt.Printf("%s %d円\n", item.Category, item.Price)
+		fmt.Printf("[%04d] %s:%d円\n", item.ID, item.Category, item.Price)
 	}
 
 	fmt.Println("==========")
