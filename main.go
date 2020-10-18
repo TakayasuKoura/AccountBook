@@ -30,7 +30,7 @@ LOOP: // 以下のループにラベル「LOOP」をつける
 	for {
 		// モードを選択して実行する
 		var mode int
-		fmt.Println("[1]入力 [2]最新10件 [3]終了")
+		fmt.Println("[1]入力 [2]最新10件 [3]削除 [4]終了")
 		fmt.Printf(">")
 		fmt.Scan(&mode)
 
@@ -55,6 +55,16 @@ LOOP: // 以下のループにラベル「LOOP」をつける
 			}
 			showItems(items)
 		case 3:
+			var n int
+			fmt.Print("削除IDを入力してください>")
+			fmt.Scan(&n)
+			err := ab.DeleteItem(n)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "エラー:", err)
+				break LOOP
+			}
+			fmt.Println("データを削除しました")
+		case 4:
 			fmt.Println("終了します")
 			return
 		}

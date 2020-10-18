@@ -75,3 +75,14 @@ func (ab *AccountBook) GetItems(limit int) ([]*Item, error) {
 
 	return items, nil
 }
+
+// DeleteItem 入力されたIDに該当するデータを削除する
+func (ab *AccountBook) DeleteItem(id int) error {
+	const sqlStr = `DELETE FROM items WHERE id = ?`
+	_, err := ab.db.Exec(sqlStr, id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
