@@ -10,6 +10,12 @@ type Item struct {
 	Price    int
 }
 
+type Summary struct {
+	Category string
+	Count    int
+	Sum      int
+}
+
 // AccountBook 家計簿の処理を行う型
 type AccountBook struct {
 	db *sql.DB
@@ -85,4 +91,39 @@ func (ab *AccountBook) DeleteItem(id int) error {
 	}
 
 	return nil
+}
+
+// 集計結果を取得する関数
+func (ab *AccountBook) GetSummaries() ([]*Summary, error) {
+	// 品目ごとにグループ化して金額の合計を出す
+	const sqlStr = `SELECT category, COUNT(*), SUM(price) FROM items GROUP BY category`
+	rows, err := ab.db.Query(sqlStr)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close() // 関数終了時にCloseが呼び出される
+
+	var summaries []*Summary
+	for rows.Next() {
+		var s Summary
+		err := rows.Scan(&s.Category, &s.Count, &s.Sum)
+		if err != nil {
+			return nil, err
+		}
+		summaries = append(summaries, &s)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return summaries, nil
+}
+
+// 平均を取得する関数
+func (s *Summary) Avg() float64 {
+	if s.Count == 0 {
+		return 0
+	}
+	return float64(s.Sum) / float64(s.Count)
 }

@@ -30,13 +30,13 @@ LOOP: // 以下のループにラベル「LOOP」をつける
 	for {
 		// モードを選択して実行する
 		var mode int
-		fmt.Println("[1]入力 [2]最新10件 [3]削除 [4]終了")
+		fmt.Println("[1]入力 [2]最新10件 [3]集計 [4]削除 [5]終了")
 		fmt.Printf(">")
 		fmt.Scan(&mode)
 
 		// モードによって処理を変える
 		switch mode {
-		case 1:
+		case 1: // 入力
 			var n int
 			fmt.Print("何件入力しますか>")
 			fmt.Scan(&n)
@@ -47,14 +47,21 @@ LOOP: // 以下のループにラベル「LOOP」をつける
 					break LOOP
 				}
 			}
-		case 2:
+		case 2: // 最新10件
 			items, err := ab.GetItems(10)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, "エラー:", err)
 				break LOOP
 			}
 			showItems(items)
-		case 3:
+		case 3: // 集計
+			summaries, err := ab.GetSummaries()
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "エラー:", err)
+				break LOOP
+			}
+			showSummary(summaries)
+		case 4: // 削除
 			var n int
 			fmt.Print("削除IDを入力してください>")
 			fmt.Scan(&n)
@@ -64,7 +71,7 @@ LOOP: // 以下のループにラベル「LOOP」をつける
 				break LOOP
 			}
 			fmt.Println("データを削除しました")
-		case 4:
+		case 5: // 終了
 			fmt.Println("終了します")
 			return
 		}
@@ -93,4 +100,17 @@ func showItems(items []*Item) {
 	}
 
 	fmt.Println("==========")
+}
+
+// 集計を出力する関数
+func showSummary(summaries []*Summary) {
+	fmt.Println("===========")
+
+	// タブ区切りで「品目　個数　合計　平均」を出力
+	fmt.Printf("品目\t個数\t合計\t平均\n")
+	for _, s := range summaries {
+		fmt.Printf("%s\t%d\t%d円\t%.2f円\n", s.Category, s.Count, s.Sum, s.Avg())
+	}
+
+	fmt.Println("===========")
 }
